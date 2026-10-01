@@ -44,7 +44,29 @@ import {
     var s = Math.max(0, Math.floor(ms / 1000));
     return pad(Math.floor(s / 3600)) + ':' + pad(Math.floor((s % 3600) / 60)) + ':' + pad(s % 60);
   }
-  function status(t) { return t.doneAt ? 'done' : (t.startedAt ? 'running' : 'todo'); }
+  /* Une tâche mémorise : began (1er démarrage), spentMs (temps cumulé avant la reprise en cours),
+     runSince (début de la période en cours, null si en pause), doneAt.
+     Les anciennes tâches (startedAt + doneAt) restent lisibles. */
+  function norm(t) {
+    if ('runSince' in t) return { began: t.began || null, spent: t.spentMs || 0, runSince: t.doneAt ? null : (t.runSince || null) };
+    return {
+      began: t.startedAt || null,
+      spent: (t.doneAt && t.startedAt) ? t.doneAt - t.startedAt : 0,
+      runSince: (!t.doneAt && t.startedAt) ? t.startedAt : null
+    };
+  }
+  function elapsed(t, now) { var n = norm(t); return n.spent + (n.runSince ? now - n.runSince : 0); }
+  function status(t) {
+    if (t.doneAt) return 'done';
+    var n = norm(t);
+    if (n.runSince) return 'running';
+    return n.began ? 'paused' : 'todo';
+  }
+  function build(t, o) {
+    var r = Object.assign({}, t, o);
+    delete r.startedAt;
+    return r;
+  }
   function setNote(msg, warn) { var n = $('note'); n.textContent = msg || ''; n.className = 'note' + (warn ? ' warn' : ''); }
 
   /* ---------- stockage local (sans synchronisation) ---------- */
@@ -90,24 +112,47 @@ import {
   function addTask(title, date) {
     store.save({ id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: title, entryDate: date || todayStr(), createdAt: Date.now(), startedAt: null, doneAt: null });
   }
-  function startTask(id) { var t = findTask(id); if (t) store.save(Object.assign({}, t, { startedAt: Date.now(), doneAt: null })); }
+  function startTask(id) {
+    var t = findTask(id); if (!t) return;
+    var now = Date.now();
+    store.save(build(t, { began: now, spentMs: 0, runSince: now, doneAt: null }));
+  }
+  function pauseTask(id) {
+    var t = findTask(id); if (!t) return;
+    var n = norm(t), now = Date.now();
+    store.save(build(t, { began: n.began, spentMs: n.spent + (n.runSince ? now - n.runSince : 0), runSince: null, doneAt: null }));
+  }
+  function resumeTask(id) {
+    var t = findTask(id); if (!t) return;
+    var n = norm(t);
+    store.save(build(t, { began: n.began, spentMs: n.spent, runSince: Date.now(), doneAt: null }));
+  }
   function toggleDone(id) {
     var t = findTask(id); if (!t) return;
-    store.save(t.doneAt ? Object.assign({}, t, { doneAt: null, startedAt: null }) : Object.assign({}, t, { doneAt: Date.now() }));
+    var n = norm(t), now = Date.now();
+    if (t.doneAt) {
+      /* rouvrir : le temps déjà passé est conservé, la tâche repasse en pause (ou à faire) */
+      store.save(build(t, { began: n.began, spentMs: n.spent, runSince: null, doneAt: null }));
+    } else {
+      store.save(build(t, { began: n.began, spentMs: n.spent + (n.runSince ? now - n.runSince : 0), runSince: null, doneAt: now }));
+    }
   }
 
   /* ---------- rendu ---------- */
+  var LABEL = { todo: 'À faire', running: 'En cours', paused: 'En pause', done: 'Terminée' };
   function taskHTML(t) {
-    var st = status(t), h = '';
+    var st = status(t), n = norm(t), h = '';
     h += '<article class="task ' + st + '" data-id="' + esc(t.id) + '">';
     h += '<button class="check" data-act="toggle" role="checkbox" aria-checked="' + (st === 'done') + '" aria-label="' + (st === 'done' ? 'Rouvrir la tâche' : 'Marquer comme terminée') + '">' + ICON_CHECK + '</button>';
     h += '<div class="body"><div class="title">' + esc(t.title) + '</div><div class="meta">';
-    h += '<span class="pill ' + st + '">' + (st === 'done' ? 'Terminée' : st === 'running' ? 'En cours' : 'À faire') + '</span>';
+    h += '<span class="pill ' + st + '">' + LABEL[st] + '</span>';
     h += '<span>Entrée le ' + esc(fmtDay(t.entryDate)) + '</span>';
     if (st === 'running') {
-      h += '<span>Démarrée ' + esc(fmtStamp(t.startedAt)) + '</span><span class="chip live" data-live="' + t.startedAt + '">' + fmtClock(Date.now() - t.startedAt) + '</span>';
+      h += '<span>Démarrée ' + esc(fmtStamp(n.began)) + '</span><span class="chip live" data-base="' + n.spent + '" data-live="' + n.runSince + '">' + fmtClock(elapsed(t, Date.now())) + '</span>';
+    } else if (st === 'paused') {
+      h += '<span>Démarrée ' + esc(fmtStamp(n.began)) + '</span><span class="chip paused">' + fmtClock(n.spent) + '</span>';
     } else if (st === 'done') {
-      if (t.startedAt) h += '<span class="chip spent">' + esc(fmtDur(t.doneAt - t.startedAt)) + '</span>';
+      if (n.began) h += '<span class="chip spent">' + esc(fmtDur(n.spent)) + '</span>';
       else h += '<span>Durée non chronométrée</span>';
       h += '<span>Terminée ' + esc(fmtStamp(t.doneAt)) + '</span>';
     }
@@ -116,6 +161,8 @@ import {
       h += '<span class="confirm">Supprimer ?<button class="btn small" data-act="delete-yes">Oui</button><button class="btn small ghost" data-act="delete-no">Non</button></span>';
     } else {
       if (st === 'todo') h += '<button class="btn small" data-act="start">Démarrer</button>';
+      if (st === 'running') h += '<button class="btn small pausebtn" data-act="pause">Pause</button>';
+      if (st === 'paused') h += '<button class="btn small" data-act="resume">Reprendre</button>';
       h += '<button class="icon" data-act="delete" aria-label="Supprimer la tâche">' + ICON_TRASH + '</button>';
     }
     h += '</div></article>';
@@ -126,10 +173,11 @@ import {
     return '<section class="group ' + cls + '"><h2>' + title + ' <em>' + list.length + '</em></h2>' + list.map(taskHTML).join('') + '</section>';
   }
   function render() {
-    var running = tasks.filter(function (t) { return status(t) === 'running'; }).sort(function (a, b) { return a.startedAt - b.startedAt; });
+    var running = tasks.filter(function (t) { return status(t) === 'running'; }).sort(function (a, b) { return norm(a).runSince - norm(b).runSince; });
+    var paused = tasks.filter(function (t) { return status(t) === 'paused'; }).sort(function (a, b) { return norm(a).began - norm(b).began; });
     var todo = tasks.filter(function (t) { return status(t) === 'todo'; }).sort(function (a, b) { return a.entryDate < b.entryDate ? -1 : a.entryDate > b.entryDate ? 1 : a.createdAt - b.createdAt; });
     var done = tasks.filter(function (t) { return status(t) === 'done'; }).sort(function (a, b) { return b.doneAt - a.doneAt; });
-    var html = group('En cours', running, 'running') + group('À faire', todo, 'todo') + group('Terminées', done, 'done');
+    var html = group('En cours', running, 'running') + group('En pause', paused, 'paused') + group('À faire', todo, 'todo') + group('Terminées', done, 'done');
     if (!tasks.length) {
       html = '<div class="empty"><strong>' + (loaded ? 'Aucune tâche pour le moment' : 'Chargement…') + '</strong>' +
         (loaded ? '<p>Saisissez une tâche ci-dessus, appuyez sur Démarrer quand vous commencez, puis cochez-la une fois terminée. Le temps passé s\'affichera ici.</p>' : '') + '</div>';
@@ -138,15 +186,16 @@ import {
     updateStats();
   }
   function updateStats() {
-    var now = Date.now(), spent = 0, nDone = 0, nTodo = 0, nRun = 0;
+    var now = Date.now(), spent = 0, nDone = 0, nTodo = 0, nRun = 0, nPause = 0;
     tasks.forEach(function (t) {
-      if (t.doneAt) { nDone++; if (t.startedAt) spent += t.doneAt - t.startedAt; }
-      else if (t.startedAt) { nRun++; spent += now - t.startedAt; }
-      else nTodo++;
+      var st = status(t);
+      spent += elapsed(t, now);
+      if (st === 'done') nDone++; else if (st === 'running') nRun++; else if (st === 'paused') nPause++; else nTodo++;
     });
     $('stats').innerHTML =
       '<div class="stat todo"><b>' + nTodo + '</b><span>Restantes</span></div>' +
       '<div class="stat run"><b>' + nRun + '</b><span>En cours</span></div>' +
+      '<div class="stat pause"><b>' + nPause + '</b><span>En pause</span></div>' +
       '<div class="stat done"><b>' + nDone + '</b><span>Terminées</span></div>' +
       '<div class="stat"><b>' + tasks.length + '</b><span>Au total</span></div>' +
       '<div class="stat time"><b>' + esc(fmtDur(spent)) + '</b><span>Temps passé</span></div>';
@@ -156,7 +205,7 @@ import {
   var lastMin = -1;
   setInterval(function () {
     var now = Date.now();
-    document.querySelectorAll('[data-live]').forEach(function (el) { el.textContent = fmtClock(now - (+el.getAttribute('data-live'))); });
+    document.querySelectorAll('[data-live]').forEach(function (el) { el.textContent = fmtClock((+el.getAttribute('data-base')) + now - (+el.getAttribute('data-live'))); });
     var m = Math.floor(now / 60000);
     if (m !== lastMin) { lastMin = m; if (tasks.length) updateStats(); }
   }, 1000);
@@ -225,6 +274,8 @@ import {
     var id = btn.closest('.task').getAttribute('data-id');
     var act = btn.getAttribute('data-act');
     if (act === 'start') startTask(id);
+    else if (act === 'pause') pauseTask(id);
+    else if (act === 'resume') resumeTask(id);
     else if (act === 'toggle') toggleDone(id);
     else if (act === 'delete') { confirmId = id; render(); }
     else if (act === 'delete-no') { confirmId = null; render(); }

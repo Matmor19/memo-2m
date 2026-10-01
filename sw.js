@@ -1,6 +1,6 @@
 // Service worker : permet d'ouvrir l'application sans connexion.
 // Stratégie : réseau d'abord (toujours la dernière version), sinon copie en mémoire.
-var CACHE = 'memo-2m-v4';
+var CACHE = 'memo-2m-v5';
 var SHELL = ['./', 'index.html', 'app.js', 'firebase-config.js', 'manifest.webmanifest',
   'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png',
   'fonts/montserrat-latin-400-normal.woff2', 'fonts/montserrat-latin-600-normal.woff2',
