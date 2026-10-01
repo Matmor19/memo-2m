@@ -50,11 +50,11 @@ header p{margin:2px 0 0;color:var(--muted);font-size:13px}
 .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:14ch}
 .linkbtn{background:none;border:0;padding:6px 4px;color:var(--accent-ink);font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .stat{background:var(--surface);padding:12px 12px 11px;min-width:0}
 .stat b{display:block;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .stat span{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.stat.time b{color:var(--accent-ink)}
+.stat.time b,.stat.run b{color:var(--accent-ink)}
 .progress{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:-8px}
 .progress i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s}
 
@@ -110,7 +110,9 @@ section.group h2 em{font-style:normal;background:var(--line);color:var(--fg);bor
 .authmsg.ok{color:var(--good)}
 
 @media (max-width:560px){
-  .stats{grid-template-columns:repeat(2,1fr)}
+  .stats{grid-template-columns:repeat(6,1fr)}
+  .stat{grid-column:span 2}
+  .stat:nth-child(n+4){grid-column:span 3}
   form.add{grid-template-columns:1fr 1fr}
   form.add input[type=text]{grid-column:1/-1}
   form.add input[type=date]{width:auto}

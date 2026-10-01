@@ -137,13 +137,15 @@ import {
     updateStats();
   }
   function updateStats() {
-    var now = Date.now(), spent = 0, nDone = 0, nOpen = 0;
+    var now = Date.now(), spent = 0, nDone = 0, nTodo = 0, nRun = 0;
     tasks.forEach(function (t) {
       if (t.doneAt) { nDone++; if (t.startedAt) spent += t.doneAt - t.startedAt; }
-      else { nOpen++; if (t.startedAt) spent += now - t.startedAt; }
+      else if (t.startedAt) { nRun++; spent += now - t.startedAt; }
+      else nTodo++;
     });
     $('stats').innerHTML =
-      '<div class="stat"><b>' + nOpen + '</b><span>Restantes</span></div>' +
+      '<div class="stat"><b>' + nTodo + '</b><span>Restantes</span></div>' +
+      '<div class="stat run"><b>' + nRun + '</b><span>En cours</span></div>' +
       '<div class="stat"><b>' + nDone + '</b><span>Terminées</span></div>' +
       '<div class="stat"><b>' + tasks.length + '</b><span>Au total</span></div>' +
       '<div class="stat time"><b>' + esc(fmtDur(spent)) + '</b><span>Temps passé</span></div>';
