@@ -102,6 +102,7 @@ import {
     h += '<article class="task ' + st + '" data-id="' + esc(t.id) + '">';
     h += '<button class="check" data-act="toggle" role="checkbox" aria-checked="' + (st === 'done') + '" aria-label="' + (st === 'done' ? 'Rouvrir la tâche' : 'Marquer comme terminée') + '">' + ICON_CHECK + '</button>';
     h += '<div class="body"><div class="title">' + esc(t.title) + '</div><div class="meta">';
+    h += '<span class="pill ' + st + '">' + (st === 'done' ? 'Terminée' : st === 'running' ? 'En cours' : 'À faire') + '</span>';
     h += '<span>Entrée le ' + esc(fmtDay(t.entryDate)) + '</span>';
     if (st === 'running') {
       h += '<span>Démarrée ' + esc(fmtStamp(t.startedAt)) + '</span><span class="chip live" data-live="' + t.startedAt + '">' + fmtClock(Date.now() - t.startedAt) + '</span>';
@@ -120,15 +121,15 @@ import {
     h += '</div></article>';
     return h;
   }
-  function group(title, list) {
+  function group(title, list, cls) {
     if (!list.length) return '';
-    return '<section class="group"><h2>' + title + ' <em>' + list.length + '</em></h2>' + list.map(taskHTML).join('') + '</section>';
+    return '<section class="group ' + cls + '"><h2>' + title + ' <em>' + list.length + '</em></h2>' + list.map(taskHTML).join('') + '</section>';
   }
   function render() {
     var running = tasks.filter(function (t) { return status(t) === 'running'; }).sort(function (a, b) { return a.startedAt - b.startedAt; });
     var todo = tasks.filter(function (t) { return status(t) === 'todo'; }).sort(function (a, b) { return a.entryDate < b.entryDate ? -1 : a.entryDate > b.entryDate ? 1 : a.createdAt - b.createdAt; });
     var done = tasks.filter(function (t) { return status(t) === 'done'; }).sort(function (a, b) { return b.doneAt - a.doneAt; });
-    var html = group('En cours', running) + group('À faire', todo) + group('Terminées', done);
+    var html = group('En cours', running, 'running') + group('À faire', todo, 'todo') + group('Terminées', done, 'done');
     if (!tasks.length) {
       html = '<div class="empty"><strong>' + (loaded ? 'Aucune tâche pour le moment' : 'Chargement…') + '</strong>' +
         (loaded ? '<p>Saisissez une tâche ci-dessus, appuyez sur Démarrer quand vous commencez, puis cochez-la une fois terminée. Le temps passé s\'affichera ici.</p>' : '') + '</div>';
@@ -144,9 +145,9 @@ import {
       else nTodo++;
     });
     $('stats').innerHTML =
-      '<div class="stat"><b>' + nTodo + '</b><span>Restantes</span></div>' +
+      '<div class="stat todo"><b>' + nTodo + '</b><span>Restantes</span></div>' +
       '<div class="stat run"><b>' + nRun + '</b><span>En cours</span></div>' +
-      '<div class="stat"><b>' + nDone + '</b><span>Terminées</span></div>' +
+      '<div class="stat done"><b>' + nDone + '</b><span>Terminées</span></div>' +
       '<div class="stat"><b>' + tasks.length + '</b><span>Au total</span></div>' +
       '<div class="stat time"><b>' + esc(fmtDur(spent)) + '</b><span>Temps passé</span></div>';
     $('bar').style.width = (tasks.length ? Math.round(nDone / tasks.length * 100) : 0) + '%';
