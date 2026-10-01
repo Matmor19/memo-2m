@@ -1,0 +1,16 @@
+{
+  "name": "Mémo Atelier 2M",
+  "short_name": "Mémo 2M",
+  "description": "Mémo de tâches avec chronomètre pour Atelier 2M.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F5F3F1",
+  "theme_color": "#E07838",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

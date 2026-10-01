@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mémo Atelier 2M</title>
+<meta name="theme-color" content="#E07838">
+<meta name="description" content="Mémo de tâches avec chronomètre pour Atelier 2M.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mémo 2M">
+<style>
+@font-face{font-family:'Montserrat';font-weight:400;font-style:normal;font-display:swap;src:url(fonts/montserrat-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Montserrat';font-weight:600;font-style:normal;font-display:swap;src:url(fonts/montserrat-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Montserrat';font-weight:700;font-style:normal;font-display:swap;src:url(fonts/montserrat-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Montserrat';font-weight:800;font-style:normal;font-display:swap;src:url(fonts/montserrat-latin-800-normal.woff2) format('woff2')}
+:root{
+  color-scheme:light;
+  --bg:#F5F3F1;--surface:#FFFFFF;--line:#E2DDD8;--fg:#26221F;--muted:#6E665F;
+  --accent:#E07838;--accent-ink:#B4501A;--accent-soft:#FBE9DD;--on-accent:#26221F;
+  --good:#2C7A4B;--good-soft:#DFF0E5;--danger:#B0362B;
+  --font:'Montserrat',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme:dark;
+    --bg:#1B1816;--surface:#262220;--line:#3A3531;--fg:#F1ECE8;--muted:#A69D95;
+    --accent-ink:#F29A62;--accent-soft:#3A2619;--on-accent:#1B1816;
+    --good:#6CC38C;--good-soft:#203528;--danger:#F08A7E;
+  }
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.45;
+  padding-inline:16px;padding-top:calc(20px + env(safe-area-inset-top,0px));padding-bottom:calc(56px + env(safe-area-inset-bottom,0px))}
+.wrap{max-width:720px;margin-inline:auto;display:flex;flex-direction:column;gap:20px}
+button,input{font-family:inherit;font-size:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+header{display:flex;align-items:center;gap:12px}
+.mark{width:40px;height:40px;border-radius:10px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:800;font-size:17px;letter-spacing:-.04em;flex:none}
+header .ttl{flex:1;min-width:0}
+h1{font-size:22px;line-height:1.15;font-weight:800;margin:0;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.who{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);min-width:0}
+.who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:14ch}
+.linkbtn{background:none;border:0;padding:6px 4px;color:var(--accent-ink);font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.stat{background:var(--surface);padding:12px 12px 11px;min-width:0}
+.stat b{display:block;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat span{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.stat.time b{color:var(--accent-ink)}
+.progress{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:-8px}
+.progress i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s}
+
+form.add{display:grid;grid-template-columns:1fr auto auto;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px}
+form.add input,.field{min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:0 12px;height:46px;width:100%}
+form.add input[type=date]{width:150px}
+form.add input::placeholder,.field::placeholder{color:var(--muted)}
+.btn{border:0;border-radius:10px;height:46px;padding:0 18px;font-weight:700;cursor:pointer;background:var(--accent);color:var(--on-accent);white-space:nowrap}
+.btn:hover{filter:brightness(1.06)}
+.btn.small{height:38px;padding:0 14px;font-size:14px}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--fg)}
+.label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;grid-column:1/-1;margin:2px 4px -2px}
+
+section.group{display:flex;flex-direction:column;gap:8px}
+section.group h2{margin:0 4px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:flex;gap:8px;align-items:center}
+section.group h2 em{font-style:normal;background:var(--line);color:var(--fg);border-radius:99px;padding:1px 8px;font-size:11px}
+
+.task{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.task.running{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.check{width:32px;height:32px;border-radius:50%;border:2px solid var(--muted);background:transparent;cursor:pointer;display:grid;place-items:center;padding:0;flex:none}
+.check:hover{border-color:var(--accent)}
+.check svg{width:16px;height:16px;opacity:0;stroke:var(--on-accent);fill:none;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+.task.done .check{background:var(--good);border-color:var(--good)}
+.task.done .check svg{opacity:1;stroke:#fff}
+.body{min-width:0}
+.title{font-weight:600;overflow-wrap:anywhere}
+.task.done .title{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+.meta{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:3px;font-size:12px;color:var(--muted)}
+.chip{display:inline-block;font-weight:700;font-variant-numeric:tabular-nums;border-radius:99px;padding:1px 10px;font-size:12px}
+.chip.live{background:var(--accent);color:var(--on-accent)}
+.chip.spent{background:var(--good-soft);color:var(--good)}
+.actions{display:flex;gap:6px;align-items:center}
+.icon{width:38px;height:38px;border-radius:10px;border:0;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center;padding:0}
+.icon:hover{background:var(--bg);color:var(--danger)}
+.icon svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.confirm{display:flex;gap:6px;align-items:center;font-size:13px}
+.confirm .btn{background:var(--danger);color:#fff}
+
+.empty{border:1.5px dashed var(--line);border-radius:14px;padding:26px 18px;text-align:center;color:var(--muted)}
+.empty strong{display:block;color:var(--fg);font-size:16px;margin-bottom:4px}
+.empty p{margin:0 auto;max-width:44ch;font-size:14px}
+.appcol{display:flex;flex-direction:column;gap:20px}
+.note{font-size:12px;color:var(--muted);text-align:center;min-height:1em}
+.note.warn{color:var(--accent-ink)}
+
+.authcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px;max-width:420px;width:100%;margin-inline:auto}
+.authcard h2{margin:0;font-size:18px;font-weight:800}
+.authcard p{margin:0;color:var(--muted);font-size:14px}
+.authcard form{display:flex;flex-direction:column;gap:10px}
+.authrow{display:flex;gap:8px;flex-wrap:wrap}
+.authrow .btn{flex:1}
+.authmsg{font-size:13px;color:var(--danger);min-height:1.2em}
+.authmsg.ok{color:var(--good)}
+
+@media (max-width:560px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  form.add{grid-template-columns:1fr 1fr}
+  form.add input[type=text]{grid-column:1/-1}
+  form.add input[type=date]{width:auto}
+  .task{grid-template-columns:auto 1fr}
+  .actions{grid-column:1/-1;justify-content:flex-end}
+  .btn.small{flex:1}
+}
+@media (prefers-reduced-motion:reduce){.progress i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="mark" aria-hidden="true">2M</div>
+    <div class="ttl">
+      <h1>Mémo Atelier 2M</h1>
+      <p id="today"></p>
+    </div>
+    <div class="who" id="who" hidden><span id="whoMail"></span><button class="linkbtn" id="logout" type="button">Se déconnecter</button></div>
+  </header>
+
+  <div id="auth" hidden>
+    <div class="authcard">
+      <h2>Connexion</h2>
+      <p>Connectez-vous pour retrouver vos tâches sur tous vos appareils. Première fois ? Saisissez un e-mail et un mot de passe, puis appuyez sur « Créer le compte ».</p>
+      <form id="authForm">
+        <input class="field" id="authEmail" type="email" placeholder="Adresse e-mail" autocomplete="username" required aria-label="Adresse e-mail">
+        <input class="field" id="authPass" type="password" placeholder="Mot de passe (6 caractères minimum)" autocomplete="current-password" required aria-label="Mot de passe">
+        <div class="authmsg" id="authMsg" role="alert"></div>
+        <div class="authrow">
+          <button class="btn" type="submit">Se connecter</button>
+          <button class="btn ghost" type="button" id="authCreate">Créer le compte</button>
+        </div>
+        <button class="linkbtn" type="button" id="authReset">Mot de passe oublié ?</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="app" class="appcol" hidden>
+    <div class="stats" id="stats" aria-live="polite"></div>
+    <div class="progress" aria-hidden="true"><i id="bar" style="width:0%"></i></div>
+
+    <form class="add" id="addForm">
+      <span class="label">Nouvelle tâche</span>
+      <input id="newTitle" type="text" placeholder="Ex. Plans façades dossier Rouhaud" autocomplete="off" maxlength="200" aria-label="Intitulé de la tâche">
+      <input id="newDate" type="date" aria-label="Date d'entrée">
+      <button class="btn" type="submit">Ajouter</button>
+    </form>
+
+    <div id="lists" style="display:flex;flex-direction:column;gap:20px"></div>
+    <div class="note" id="note"></div>
+  </div>
+</div>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
